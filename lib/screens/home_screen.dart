@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -28,12 +31,16 @@ class _HomeScreenState extends State<HomeScreen> {
   String _winnerText = '';
   Player? _lastScoredPlayer;
   final FlutterTts _flutterTts = FlutterTts();
+  late final ConfettiController _confettiController;
 
   bool get _isMatchFinished => _winnerText.isNotEmpty;
 
   @override
   void initState() {
     super.initState();
+    _confettiController = ConfettiController(
+      duration: const Duration(milliseconds: 1800),
+    );
     _initTts();
   }
 
@@ -57,8 +64,18 @@ class _HomeScreenState extends State<HomeScreen> {
     await _flutterTts.speak(_buildScoreAnnouncement());
   }
 
+  Future<void> _speakWinnerAnnouncement() async {
+    await _flutterTts.stop();
+    final String winnerName = _winnerText
+        .replaceAll(' Wins!', '')
+        .replaceAll('!', '')
+        .trim();
+    await _flutterTts.speak('Congratulations $winnerName');
+  }
+
   void _incrementPlayerScore(Player player) {
     if (_isMatchFinished) return;
+    final bool hadWinnerBefore = _winnerText.isNotEmpty;
 
     HapticFeedback.lightImpact();
     setState(() {
@@ -66,6 +83,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _lastScoredPlayer = player;
       _checkWinner();
     });
+
+    if (!hadWinnerBefore && _winnerText.isNotEmpty) {
+      _confettiController.play();
+      _speakWinnerAnnouncement();
+      return;
+    }
     _speakScoreUpdate();
   }
 
@@ -101,11 +124,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _lastScoredPlayer = null;
     });
     _flutterTts.stop();
+    _confettiController.stop();
   }
 
   @override
   void dispose() {
     _flutterTts.stop();
+    _confettiController.dispose();
     super.dispose();
   }
 
@@ -216,6 +241,25 @@ class _HomeScreenState extends State<HomeScreen> {
           Image.asset(AppConstants.backgroundImagePath, fit: BoxFit.cover),
           const _GradientOverlay(),
           const _BackgroundGlowLayer(),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              emissionFrequency: 0.06,
+              numberOfParticles: 28,
+              maxBlastForce: 26,
+              minBlastForce: 12,
+              gravity: 0.16,
+              colors: const [
+                Colors.green,
+                Colors.blue,
+                Colors.white,
+                Colors.orange,
+              ],
+              createParticlePath: _drawStar,
+            ),
+          ),
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -257,7 +301,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 12),
                       ControlButtons(
-                        winnerText: _winnerText,
+                        winnerText: '',
                         onReset: _confirmResetDialog,
                         onUndo: _undoLastPoint,
                         canUndo: _lastScoredPlayer != null,
@@ -293,6 +337,37 @@ class _HomeScreenState extends State<HomeScreen> {
       onNameTap: () => _showEditNameDialog(_playerB),
     );
   }
+}
+
+Path _drawStar(Size size) {
+  final Path path = Path();
+  final double radius = size.width / 2;
+  final double innerRadius = radius / 2.5;
+  final Offset center = Offset(radius, radius);
+
+  for (int i = 0; i < 5; i++) {
+    final double outerAngle = -pi / 2 + (i * 2 * pi / 5);
+    final double innerAngle = outerAngle + pi / 5;
+
+    final Offset outerPoint = Offset(
+      center.dx + radius * cos(outerAngle),
+      center.dy + radius * sin(outerAngle),
+    );
+    final Offset innerPoint = Offset(
+      center.dx + innerRadius * cos(innerAngle),
+      center.dy + innerRadius * sin(innerAngle),
+    );
+
+    if (i == 0) {
+      path.moveTo(outerPoint.dx, outerPoint.dy);
+    } else {
+      path.lineTo(outerPoint.dx, outerPoint.dy);
+    }
+    path.lineTo(innerPoint.dx, innerPoint.dy);
+  }
+
+  path.close();
+  return path;
 }
 
 /// Dark gradient layer to improve text readability.
