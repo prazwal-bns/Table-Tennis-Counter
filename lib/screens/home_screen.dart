@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:table_tennis_counter/models/player.dart';
 import 'package:table_tennis_counter/utils/constants.dart';
 import 'package:table_tennis_counter/widgets/control_buttons.dart';
@@ -26,8 +27,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _winnerText = '';
   Player? _lastScoredPlayer;
+  final FlutterTts _flutterTts = FlutterTts();
 
   bool get _isMatchFinished => _winnerText.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    // Queue mode prevents speech overlap while tapping quickly.
+    await _flutterTts.setQueueMode(1);
+    await _flutterTts.setSpeechRate(0.45);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  String _buildScoreAnnouncement() {
+    if (_playerA.score == _playerB.score) {
+      return '${_playerA.score} all';
+    }
+    return '${_playerA.name} ${_playerA.score}, ${_playerB.name} ${_playerB.score}';
+  }
+
+  Future<void> _speakScoreUpdate() async {
+    await _flutterTts.stop();
+    await _flutterTts.speak(_buildScoreAnnouncement());
+  }
 
   void _incrementPlayerScore(Player player) {
     if (_isMatchFinished) return;
@@ -38,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _lastScoredPlayer = player;
       _checkWinner();
     });
+    _speakScoreUpdate();
   }
 
   void _checkWinner() {
@@ -71,6 +100,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _winnerText = '';
       _lastScoredPlayer = null;
     });
+    _flutterTts.stop();
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop();
+    super.dispose();
   }
 
   /// Opens name edit dialog with current name pre-filled.
