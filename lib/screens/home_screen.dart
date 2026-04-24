@@ -25,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   );
 
   String _winnerText = '';
+  Player? _lastScoredPlayer;
 
   bool get _isMatchFinished => _winnerText.isNotEmpty;
 
@@ -34,11 +35,14 @@ class _HomeScreenState extends State<HomeScreen> {
     HapticFeedback.lightImpact();
     setState(() {
       player.score++;
+      _lastScoredPlayer = player;
       _checkWinner();
     });
   }
 
   void _checkWinner() {
+    _winnerText = '';
+
     if (_playerA.score >= AppConstants.winScore) {
       _winnerText = '${_playerA.name} Wins!';
       return;
@@ -49,12 +53,122 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _undoLastPoint() {
+    if (_lastScoredPlayer == null || _lastScoredPlayer!.score <= 0) return;
+
+    HapticFeedback.selectionClick();
+    setState(() {
+      _lastScoredPlayer!.score--;
+      _lastScoredPlayer = null;
+      _checkWinner();
+    });
+  }
+
   void _resetScores() {
     setState(() {
       _playerA.score = 0;
       _playerB.score = 0;
       _winnerText = '';
+      _lastScoredPlayer = null;
     });
+  }
+
+  /// Opens name edit dialog with current name pre-filled.
+  Future<void> _showEditNameDialog(Player player) async {
+    final TextEditingController controller =
+        TextEditingController(text: player.name);
+    String? errorText;
+
+    // StatefulBuilder lets us validate input inside dialog without
+    // affecting whole screen rebuild.
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text(AppConstants.editNameTitle),
+              content: TextField(
+                controller: controller,
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  labelText: AppConstants.playerNameLabel,
+                  errorText: errorText,
+                ),
+                onSubmitted: (_) {
+                  final String trimmedName = controller.text.trim();
+                  if (trimmedName.isEmpty) {
+                    setDialogState(() {
+                      errorText = AppConstants.nameRequiredMessage;
+                    });
+                    return;
+                  }
+                  setState(() {
+                    player.name = trimmedName;
+                    _checkWinner();
+                  });
+                  Navigator.of(context).pop();
+                },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(AppConstants.cancelLabel),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final String trimmedName = controller.text.trim();
+                    if (trimmedName.isEmpty) {
+                      setDialogState(() {
+                        errorText = AppConstants.nameRequiredMessage;
+                      });
+                      return;
+                    }
+
+                    // Update name instantly in UI.
+                    setState(() {
+                      player.name = trimmedName;
+                      _checkWinner();
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text(AppConstants.saveLabel),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Confirms reset action to prevent accidental score loss.
+  Future<void> _confirmResetDialog() async {
+    final bool? shouldReset = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text(AppConstants.resetConfirmTitle),
+          content: const Text(AppConstants.resetConfirmMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(AppConstants.cancelLabel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(AppConstants.resetConfirmAction),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldReset == true) {
+      HapticFeedback.selectionClick();
+      _resetScores();
+    }
   }
 
   @override
@@ -67,64 +181,97 @@ class _HomeScreenState extends State<HomeScreen> {
           const _GradientOverlay(),
           const _BackgroundGlowLayer(),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  const Text(
-                    AppConstants.appTitle,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ScoreCard(
-                            player: _playerA,
-                            isDisabled: _isMatchFinished,
-                            onTap: _isMatchFinished
-                                ? null
-                                : () => _incrementPlayerScore(_playerA),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final bool verticalLayout = constraints.maxWidth < 820;
+                final double titleSize = constraints.maxWidth < 420 ? 20 : 24;
+
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          AppConstants.appTitle,
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: titleSize,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Container(
-                          width: 2,
-                          margin: const EdgeInsets.symmetric(vertical: 28),
-                          color: Colors.white24,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ScoreCard(
-                            player: _playerB,
-                            isDisabled: _isMatchFinished,
-                            onTap: _isMatchFinished
-                                ? null
-                                : () => _incrementPlayerScore(_playerB),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 14),
+                      Expanded(
+                        child: verticalLayout
+                            ? Column(
+                                children: [
+                                  Expanded(child: _buildScoreCardA()),
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    height: 2,
+                                    margin:
+                                        const EdgeInsets.symmetric(horizontal: 28),
+                                    color: Colors.white24,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Expanded(child: _buildScoreCardB()),
+                                ],
+                              )
+                            : Row(
+                                children: [
+                                  Expanded(child: _buildScoreCardA()),
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    width: 2,
+                                    margin:
+                                        const EdgeInsets.symmetric(vertical: 28),
+                                    color: Colors.white24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: _buildScoreCardB()),
+                                ],
+                              ),
+                      ),
+                      const SizedBox(height: 12),
+                      ControlButtons(
+                        winnerText: _winnerText,
+                        onReset: _confirmResetDialog,
+                        onUndo: _undoLastPoint,
+                        canUndo: _lastScoredPlayer != null,
+                      ),
+                      const SizedBox(height: 6),
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                  ControlButtons(
-                    winnerText: _winnerText,
-                    onReset: _resetScores,
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildScoreCardA() {
+    return ScoreCard(
+      player: _playerA,
+      isDisabled: _isMatchFinished,
+      isLastScored: identical(_lastScoredPlayer, _playerA),
+      onTap: _isMatchFinished ? null : () => _incrementPlayerScore(_playerA),
+      onNameTap: () => _showEditNameDialog(_playerA),
+    );
+  }
+
+  Widget _buildScoreCardB() {
+    return ScoreCard(
+      player: _playerB,
+      isDisabled: _isMatchFinished,
+      isLastScored: identical(_lastScoredPlayer, _playerB),
+      onTap: _isMatchFinished ? null : () => _incrementPlayerScore(_playerB),
+      onNameTap: () => _showEditNameDialog(_playerB),
     );
   }
 }

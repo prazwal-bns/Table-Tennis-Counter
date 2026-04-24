@@ -6,7 +6,7 @@ class Player {
     this.score = 0,
   });
 
-  final String name;
+  String name;
   final int accentColorHex;
   int score;
 }

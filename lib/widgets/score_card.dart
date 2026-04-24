@@ -11,71 +11,151 @@ class ScoreCard extends StatelessWidget {
     required this.player,
     required this.onTap,
     required this.isDisabled,
+    required this.onNameTap,
+    required this.isLastScored,
   });
 
   final Player player;
   final VoidCallback? onTap;
   final bool isDisabled;
+  final VoidCallback onNameTap;
+  final bool isLastScored;
 
   Color get _accentColor => Color(player.accentColorHex);
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 14),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.62),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool compact = constraints.maxHeight < 360 || constraints.maxWidth < 260;
+        final double nameFont = compact ? 18 : 24;
+        final double hintFont = compact ? 11 : 12;
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.18),
-              width: 1.1,
+            child: Ink(
+              padding: EdgeInsets.symmetric(
+                vertical: compact ? 12 : 22,
+                horizontal: compact ? 10 : 14,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A).withValues(alpha: 0.62),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: isLastScored
+                      ? _accentColor.withValues(alpha: 0.95)
+                      : Colors.white.withValues(alpha: 0.18),
+                  width: isLastScored ? 2.2 : 1.1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 18,
+                    offset: const Offset(0, 10),
+                  ),
+                  if (isLastScored)
+                    BoxShadow(
+                      color: _accentColor.withValues(alpha: 0.35),
+                      blurRadius: 22,
+                      spreadRadius: 1,
+                    ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  InkWell(
+                    onTap: onNameTap,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              player.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: _accentColor,
+                                fontSize: nameFont,
+                                fontWeight: FontWeight.w700,
+                                decoration: TextDecoration.underline,
+                                decorationColor: _accentColor.withValues(alpha: 0.7),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Icon(Icons.edit, size: compact ? 14 : 18, color: _accentColor),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: compact ? 2 : 6),
+                  Text(
+                    AppConstants.tapNameToEditText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: hintFont,
+                    ),
+                  ),
+                  SizedBox(height: compact ? 8 : 16),
+                  Expanded(
+                    child: _FlipCounterDisplay(
+                      score: player.score,
+                      accentColor: _accentColor,
+                    ),
+                  ),
+                  SizedBox(height: compact ? 8 : 16),
+                  if (isLastScored)
+                    Container(
+                      margin: EdgeInsets.only(bottom: compact ? 6 : 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _accentColor.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: _accentColor.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      child: Text(
+                        '${AppConstants.lastScoredPrefix} ${player.name}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _accentColor,
+                          fontSize: compact ? 10 : 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  Text(
+                    isDisabled
+                        ? AppConstants.matchFinishedText
+                        : AppConstants.tapToScoreText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isDisabled
+                          ? Colors.white54
+                          : _accentColor.withValues(alpha: 0.95),
+                      fontSize: compact ? 12 : 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.35),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
-              ),
-            ],
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                player.name,
-                style: TextStyle(
-                  color: _accentColor,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _FlipCounterDisplay(
-                score: player.score,
-                accentColor: _accentColor,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                isDisabled
-                    ? AppConstants.matchFinishedText
-                    : AppConstants.tapToScoreText,
-                style: TextStyle(
-                  color: isDisabled
-                      ? Colors.white54
-                      : _accentColor.withValues(alpha: 0.95),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -99,8 +179,7 @@ class _FlipCounterDisplay extends StatelessWidget {
       },
       child: Container(
         key: ValueKey(score),
-        width: 200,
-        height: 230,
+        width: double.infinity,
         decoration: BoxDecoration(
           color: const Color(0xFF111827),
           borderRadius: BorderRadius.circular(16),
@@ -145,19 +224,25 @@ class _FlipCounterDisplay extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 10),
               color: Colors.white24,
             ),
-            Text(
-              score.toString().padLeft(2, '0'),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 96,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 2,
-                shadows: [
-                  Shadow(
-                    color: accentColor.withValues(alpha: 0.55),
-                    blurRadius: 16,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  score.toString().padLeft(2, '0'),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 96,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                    shadows: [
+                      Shadow(
+                        color: accentColor.withValues(alpha: 0.55),
+                        blurRadius: 16,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ],
