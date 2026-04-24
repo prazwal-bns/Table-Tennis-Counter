@@ -183,7 +183,6 @@ class _HomeScreenState extends State<HomeScreen> {
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final bool verticalLayout = constraints.maxWidth < 820;
                 final double titleSize = constraints.maxWidth < 420 ? 20 : 24;
 
                 return Padding(
@@ -206,35 +205,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 14),
                       Expanded(
-                        child: verticalLayout
-                            ? Column(
-                                children: [
-                                  Expanded(child: _buildScoreCardA()),
-                                  const SizedBox(height: 10),
-                                  Container(
-                                    height: 2,
-                                    margin:
-                                        const EdgeInsets.symmetric(horizontal: 28),
-                                    color: Colors.white24,
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Expanded(child: _buildScoreCardB()),
-                                ],
-                              )
-                            : Row(
-                                children: [
-                                  Expanded(child: _buildScoreCardA()),
-                                  const SizedBox(width: 12),
-                                  Container(
-                                    width: 2,
-                                    margin:
-                                        const EdgeInsets.symmetric(vertical: 28),
-                                    color: Colors.white24,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(child: _buildScoreCardB()),
-                                ],
-                              ),
+                        child: Row(
+                          children: [
+                            Expanded(child: _buildScoreCardA()),
+                            const SizedBox(width: 10),
+                            Container(
+                              width: 2,
+                              margin: const EdgeInsets.symmetric(vertical: 20),
+                              color: Colors.white24,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(child: _buildScoreCardB()),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 12),
                       ControlButtons(
