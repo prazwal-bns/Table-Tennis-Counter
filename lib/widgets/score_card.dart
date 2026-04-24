@@ -10,6 +10,7 @@ class ScoreCard extends StatelessWidget {
     super.key,
     required this.player,
     required this.onTap,
+    required this.onUndoTap,
     required this.isDisabled,
     required this.onNameTap,
     required this.isLastScored,
@@ -17,6 +18,7 @@ class ScoreCard extends StatelessWidget {
 
   final Player player;
   final VoidCallback? onTap;
+  final VoidCallback? onUndoTap;
   final bool isDisabled;
   final VoidCallback onNameTap;
   final bool isLastScored;
@@ -136,6 +138,29 @@ class ScoreCard extends StatelessWidget {
                         ),
                       ),
                     ),
+              const SizedBox(height: 6),
+              OutlinedButton.icon(
+                onPressed: onUndoTap,
+                icon: const Icon(Icons.undo, size: 18),
+                label: const Text(AppConstants.undoLabel),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(160, 40),
+                  side: BorderSide(
+                    color: _accentColor.withValues(alpha: 0.7),
+                    width: 1.1,
+                  ),
+                  foregroundColor: _accentColor,
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  backgroundColor: Colors.black.withValues(alpha: 0.12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
                   Text(
                     isDisabled
                         ? AppConstants.matchFinishedText

@@ -7,7 +7,7 @@ class AppConstants {
   static const String appTitle = 'TABLE TENNIS COUNTER';
   static const String backgroundImagePath = 'assets/images/table_tennis_bg.jpg';
   static const String resetLabel = 'Reset Match';
-  static const String undoLabel = 'Undo Last Point';
+  static const String undoLabel = 'Undo Point';
   static const String tapHint = 'Tap each scoreboard to add 1 point';
   static const String winHint = 'First to 11 points wins';
   static const String matchFinishedText = 'Match Finished';

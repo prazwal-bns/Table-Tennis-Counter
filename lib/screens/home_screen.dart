@@ -105,15 +105,18 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _undoLastPoint() {
-    if (_lastScoredPlayer == null || _lastScoredPlayer!.score <= 0) return;
+  void _undoPlayerPoint(Player player) {
+    if (player.score <= 0 || _isMatchFinished) return;
 
     HapticFeedback.selectionClick();
     setState(() {
-      _lastScoredPlayer!.score--;
-      _lastScoredPlayer = null;
+      player.score--;
+      if (identical(_lastScoredPlayer, player)) {
+        _lastScoredPlayer = null;
+      }
       _checkWinner();
     });
+    _speakScoreUpdate();
   }
 
   void _resetScores() {
@@ -303,8 +306,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ControlButtons(
                         winnerText: '',
                         onReset: _confirmResetDialog,
-                        onUndo: _undoLastPoint,
-                        canUndo: _lastScoredPlayer != null,
                       ),
                       const SizedBox(height: 6),
                     ],
@@ -324,6 +325,9 @@ class _HomeScreenState extends State<HomeScreen> {
       isDisabled: _isMatchFinished,
       isLastScored: identical(_lastScoredPlayer, _playerA),
       onTap: _isMatchFinished ? null : () => _incrementPlayerScore(_playerA),
+      onUndoTap: _isMatchFinished || _playerA.score == 0
+          ? null
+          : () => _undoPlayerPoint(_playerA),
       onNameTap: () => _showEditNameDialog(_playerA),
     );
   }
@@ -334,6 +338,9 @@ class _HomeScreenState extends State<HomeScreen> {
       isDisabled: _isMatchFinished,
       isLastScored: identical(_lastScoredPlayer, _playerB),
       onTap: _isMatchFinished ? null : () => _incrementPlayerScore(_playerB),
+      onUndoTap: _isMatchFinished || _playerB.score == 0
+          ? null
+          : () => _undoPlayerPoint(_playerB),
       onNameTap: () => _showEditNameDialog(_playerB),
     );
   }

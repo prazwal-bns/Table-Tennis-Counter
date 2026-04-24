@@ -9,14 +9,10 @@ class ControlButtons extends StatelessWidget {
     super.key,
     required this.winnerText,
     required this.onReset,
-    required this.onUndo,
-    required this.canUndo,
   });
 
   final String winnerText;
   final VoidCallback onReset;
-  final VoidCallback onUndo;
-  final bool canUndo;
 
   @override
   Widget build(BuildContext context) {
@@ -52,24 +48,6 @@ class ControlButtons extends StatelessWidget {
           runSpacing: 10,
           alignment: WrapAlignment.center,
           children: [
-            OutlinedButton.icon(
-              onPressed: canUndo ? onUndo : null,
-              icon: const Icon(Icons.undo),
-              label: const Text(AppConstants.undoLabel),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(180, 52),
-                side: const BorderSide(color: Colors.white54, width: 1.2),
-                foregroundColor: Colors.white,
-                textStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-                backgroundColor: const Color(0x14000000),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
             OutlinedButton.icon(
               onPressed: onReset,
               icon: const Icon(Icons.refresh),
